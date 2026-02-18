@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<style>
+.page { padding: 40px; max-width: 1400px; margin: 0 auto; }
+
+h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+.stat-card .value { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; }
+.stat-card .sub-val { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.chart-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 900px) {
+  .chart-grid, .chart-grid-3 { grid-template-columns: 1fr; }
+}
+
+.chart-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.chart-card h4 {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 16px;
+}
+</style>
+
+<div class="page">
+  <h2>Analytics Dashboard</h2>
+  <p class="sub">Insights from the PIMA Indian Diabetes Dataset (768 records)</p>
+
+  <!-- STAT CARDS -->
+  <div class="stat-grid" id="stat-grid">
+    <div class="stat-card"><div class="label">Total Records</div><div class="value" id="d-total">—</div></div>
+    <div class="stat-card"><div class="label">Diabetic</div><div class="value" style="color:var(--danger)" id="d-diab">—</div></div>
+    <div class="stat-card"><div class="label">Non-Diabetic</div><div class="value" style="color:var(--success)" id="d-ndiab">—</div></div>
+    <div class="stat-card"><div class="label">Prevalence</div><div class="value" style="color:var(--warning)" id="d-prev">—</div><div class="sub-val">in dataset</div></div>
+    <div class="stat-card"><div class="label">Avg Glucose</div><div class="value" style="color:var(--accent)" id="d-gluc">—</div><div class="sub-val">mg/dL</div></div>
+    <div class="stat-card"><div class="label">Avg BMI</div><div class="value" id="d-bmi">—</div><div class="sub-val">kg/m²</div></div>
+    <div class="stat-card"><div class="label">Avg Age</div><div class="value" id="d-age">—</div><div class="sub-val">years</div></div>
+    <div class="stat-card"><div class="label">Best Model</div><div class="value" style="font-size:16px;color:var(--purple)" id="d-model">—</div><div class="sub-val" id="d-acc">—</div></div>
+  </div>
+
+  <!-- ROW 1: Outcome + Age -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h4>Outcome Distribution</h4>
+      <div class="spinner" id="sp1"></div>
+      <img id="chart-outcome" class="chart-img" style="display:none">
+    </div>
+    <div class="chart-card">
+      <h4>Age Distribution by Outcome</h4>
+      <div class="spinner" id="sp2"></div>
+      <img id="chart-age" class="chart-img" style="display:none">
+    </div>
+  </div>
+
+  <!-- ROW 2: Glucose + Feature importance -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h4>Glucose Levels by Outcome</h4>
+      <div class="spinner" id="sp3"></div>
+      <img id="chart-glucose" class="chart-img" style="display:none">
+    </div>
+    <div class="chart-card">
+      <h4>Feature Importance (Random Forest)</h4>
+      <div class="spinner" id="sp4"></div>
+      <img id="chart-importance" class="chart-img" style="display:none">
+    </div>
+  </div>
+
+  <!-- ROW 3: ROC + Corr -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h4>ROC Curves — All Models</h4>
+      <div class="spinner" id="sp5"></div>
+      <img id="chart-roc" class="chart-img" style="display:none">
+    </div>
+    <div class="chart-card">
+      <h4>Feature Correlation Matrix</h4>
+      <div class="spinner" id="sp6"></div>
+      <img id="chart-corr" class="chart-img" style="display:none">
+    </div>
+  </div>
+</div>
+
+<script>
+// Load stats
+fetch('/api/stats').then(r=>r.json()).then(d=>{
+  document.getElementById('d-total').textContent = d.total;
+  document.getElementById('d-diab').textContent = d.diabetic;
+  document.getElementById('d-ndiab').textContent = d.non_diabetic;
+  document.getElementById('d-prev').textContent = d.prevalence + '%';
+  document.getElementById('d-gluc').textContent = d.avg_glucose;
+  document.getElementById('d-bmi').textContent = d.avg_bmi;
+  document.getElementById('d-age').textContent = d.avg_age;
+  document.getElementById('d-model').textContent = d.best_model.split(' ')[0];
+  document.getElementById('d-acc').textContent = d.best_accuracy + '% accuracy';
+});
+
+// Load chart helper
+function loadChart(endpoint, imgId, spinnerId) {
+  fetch(endpoint).then(r=>r.json()).then(d=>{
+    const img = document.getElementById(imgId);
+    const sp = document.getElementById(spinnerId);
+    img.src = 'data:image/png;base64,' + d.img;
+    img.style.display = 'block';
+    sp.style.display = 'none';
+  });
+}
+
+loadChart('/api/chart/outcome_dist', 'chart-outcome', 'sp1');
+loadChart('/api/chart/age_dist', 'chart-age', 'sp2');
+loadChart('/api/chart/glucose_box', 'chart-glucose', 'sp3');
+loadChart('/api/chart/feature_importance', 'chart-importance', 'sp4');
+loadChart('/api/chart/roc', 'chart-roc', 'sp5');
+loadChart('/api/chart/corr', 'chart-corr', 'sp6');
+</script>
+{% endblock %}

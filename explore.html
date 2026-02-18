@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}Data Explorer{% endblock %}
+{% block content %}
+<style>
+.page { padding: 40px; max-width: 1400px; margin: 0 auto; }
+h2 { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+.sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.sum-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+.sum-card .feat { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; }
+.sum-card .row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px; }
+.sum-card .row span:first-child { color: var(--muted); }
+
+.table-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.table-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 20px;
+}
+
+.table-header h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+}
+
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th {
+  text-align: left;
+  padding: 10px 14px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(51,65,85,0.5);
+  white-space: nowrap;
+}
+
+tr:hover td { background: rgba(56,189,248,0.03); }
+
+.outcome-0 { color: #22d3ee; font-weight: 600; }
+.outcome-1 { color: #f43f5e; font-weight: 600; }
+
+.pagination {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.page-btn {
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.page-btn:hover { border-color: var(--accent); color: var(--text); }
+.page-btn.active { background: var(--accent); color: #060b18; border-color: var(--accent); font-weight: 700; }
+.page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.page-info { color: var(--muted); font-size: 13px; }
+
+.spinner { width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<div class="page">
+  <h2>Data Explorer</h2>
+  <p class="sub">PIMA Indian Diabetes Dataset — clinical biomarkers from 768 female patients</p>
+
+  <!-- SUMMARY STATS -->
+  <div class="summary-grid" id="summary-grid">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- DATA TABLE -->
+  <div class="table-section">
+    <div class="table-header">
+      <h3>📋 Patient Records</h3>
+      <span class="page-info" id="page-info">Loading...</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Pregnancies</th>
+            <th>Glucose</th>
+            <th>Blood Pressure</th>
+            <th>Skin Thickness</th>
+            <th>Insulin</th>
+            <th>BMI</th>
+            <th>Pedigree Fn</th>
+            <th>Age</th>
+            <th>Outcome</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="10"><div class="spinner"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</div>
+
+<script>
+let currentPage = 1;
+let totalPages = 1;
+
+// Load summary
+fetch('/api/dataset/summary').then(r=>r.json()).then(d=>{
+  const features = ['Pregnancies','Glucose','BloodPressure','SkinThickness','Insulin','BMI','DiabetesPedigreeFunction','Age','Outcome'];
+  const grid = document.getElementById('summary-grid');
+  grid.innerHTML = features.map(f => {
+    const s = d[f] || {};
+    return `<div class="sum-card">
+      <div class="feat">${f}</div>
+      <div class="row"><span>Mean</span><span>${(s.mean||0).toFixed(1)}</span></div>
+      <div class="row"><span>Std</span><span>${(s.std||0).toFixed(1)}</span></div>
+      <div class="row"><span>Min</span><span>${(s.min||0).toFixed(1)}</span></div>
+      <div class="row"><span>Max</span><span>${(s.max||0).toFixed(1)}</span></div>
+    </div>`;
+  }).join('');
+});
+
+function loadPage(page) {
+  currentPage = page;
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '<tr><td colspan="10"><div class="spinner"></div></td></tr>';
+
+  fetch(`/api/dataset?page=${page}`).then(r=>r.json()).then(d=>{
+    totalPages = d.pages;
+    const start = (page-1)*15;
+    tbody.innerHTML = d.rows.map((row, i) => `
+      <tr>
+        <td style="color:var(--muted)">${start+i+1}</td>
+        <td>${row.Pregnancies}</td>
+        <td>${row.Glucose}</td>
+        <td>${row.BloodPressure}</td>
+        <td>${row.SkinThickness}</td>
+        <td>${row.Insulin}</td>
+        <td>${row.BMI}</td>
+        <td>${row.DiabetesPedigreeFunction}</td>
+        <td>${row.Age}</td>
+        <td class="${row.Outcome === 1 ? 'outcome-1' : 'outcome-0'}">${row.Outcome === 1 ? '● Diabetic' : '○ Healthy'}</td>
+      </tr>`).join('');
+
+    document.getElementById('page-info').textContent = `Page ${page} of ${d.pages} (${d.total} records)`;
+    renderPagination(page, d.pages);
+  });
+}
+
+function renderPagination(current, total) {
+  const el = document.getElementById('pagination');
+  let html = '';
+  html += `<button class="page-btn" onclick="loadPage(${current-1})" ${current<=1?'disabled':''}>‹</button>`;
+  
+  let pages = [];
+  if (total <= 7) {
+    for (let i=1; i<=total; i++) pages.push(i);
+  } else {
+    pages = [1,2];
+    if (current > 4) pages.push('...');
+    for (let i=Math.max(3,current-1); i<=Math.min(total-2,current+1); i++) pages.push(i);
+    if (current < total-3) pages.push('...');
+    pages.push(total-1, total);
+  }
+
+  pages.forEach(p => {
+    if (p === '...') {
+      html += `<span style="color:var(--muted);padding:0 4px">…</span>`;
+    } else {
+      html += `<button class="page-btn ${p===current?'active':''}" onclick="loadPage(${p})">${p}</button>`;
+    }
+  });
+
+  html += `<button class="page-btn" onclick="loadPage(${current+1})" ${current>=total?'disabled':''}>›</button>`;
+  el.innerHTML = html;
+}
+
+loadPage(1);
+</script>
+{% endblock %}

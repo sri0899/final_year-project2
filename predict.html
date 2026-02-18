@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+{% block title %}Predict{% endblock %}
+{% block content %}
+<style>
+.page { padding: 40px; max-width: 1200px; margin: 0 auto; }
+h2 { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+.sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+
+.predict-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+
+@media(max-width:900px){ .predict-grid{ grid-template-columns:1fr; } }
+
+.form-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+}
+
+.form-card h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.field input, .field select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  transition: border-color 0.2s;
+}
+.field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
+
+.hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+.model-select {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.model-select label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.model-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.model-pill {
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.2s;
+  background: transparent;
+  font-family: 'DM Sans', sans-serif;
+}
+.model-pill:hover { border-color: var(--accent); color: var(--text); }
+.model-pill.active { background: var(--accent); color: #060b18; border-color: var(--accent); font-weight: 600; }
+
+.predict-btn {
+  width: 100%;
+  margin-top: 24px;
+  padding: 14px;
+  background: var(--accent);
+  color: #060b18;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.predict-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 30px rgba(56,189,248,0.3); }
+.predict-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* RESULT */
+.result-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.result-card h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.risk-display {
+  text-align: center;
+  padding: 32px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.risk-display .risk-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 48px;
+  font-weight: 800;
+}
+
+.risk-display .risk-prob {
+  font-size: 18px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.prob-bar-wrap { margin-top: 12px; }
+.prob-bar-bg {
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.prob-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s ease;
+}
+
+.advice-box {
+  background: rgba(56,189,248,0.05);
+  border: 1px solid rgba(56,189,248,0.2);
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.contrib-section h4 {
+  font-size: 13px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.contrib-bar { margin-bottom: 10px; }
+.contrib-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+.contrib-bar-bg { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.contrib-fill { height: 100%; background: var(--purple); border-radius: 3px; transition: width 0.8s; }
+
+.placeholder-text {
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+  padding: 60px 20px;
+  line-height: 1.7;
+}
+.placeholder-text .icon { font-size: 48px; margin-bottom: 16px; }
+
+.disclaimer {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+</style>
+
+<div class="page">
+  <h2>Diabetes Risk Prediction</h2>
+  <p class="sub">Enter patient biomarkers to get an ML-powered risk assessment</p>
+
+  <div class="predict-grid">
+    <!-- FORM -->
+    <div class="form-card">
+      <h3>🔬 Patient Biomarkers</h3>
+
+      <div class="form-grid">
+        <div class="field">
+          <label>Pregnancies</label>
+          <input type="number" id="f-preg" value="1" min="0" max="20">
+          <span class="hint">Number of times pregnant</span>
+        </div>
+        <div class="field">
+          <label>Glucose (mg/dL)</label>
+          <input type="number" id="f-gluc" value="120" min="0" max="300">
+          <span class="hint">Plasma glucose (2h OGTT)</span>
+        </div>
+        <div class="field">
+          <label>Blood Pressure (mmHg)</label>
+          <input type="number" id="f-bp" value="70" min="0" max="200">
+          <span class="hint">Diastolic blood pressure</span>
+        </div>
+        <div class="field">
+          <label>Skin Thickness (mm)</label>
+          <input type="number" id="f-skin" value="20" min="0" max="100">
+          <span class="hint">Triceps skinfold thickness</span>
+        </div>
+        <div class="field">
+          <label>Insulin (µU/mL)</label>
+          <input type="number" id="f-ins" value="80" min="0" max="900">
+          <span class="hint">2-hour serum insulin</span>
+        </div>
+        <div class="field">
+          <label>BMI (kg/m²)</label>
+          <input type="number" id="f-bmi" value="28" min="0" max="70" step="0.1">
+          <span class="hint">Body mass index</span>
+        </div>
+        <div class="field">
+          <label>Diabetes Pedigree</label>
+          <input type="number" id="f-dpf" value="0.5" min="0" max="3" step="0.01">
+          <span class="hint">Family history function score</span>
+        </div>
+        <div class="field">
+          <label>Age (years)</label>
+          <input type="number" id="f-age" value="30" min="1" max="120">
+          <span class="hint">Patient age in years</span>
+        </div>
+      </div>
+
+      <div class="model-select">
+        <label>Select ML Model</label>
+        <div class="model-pills" id="model-pills">
+          <button class="model-pill active" data-model="Random Forest">Random Forest</button>
+          <button class="model-pill" data-model="Gradient Boosting">Gradient Boosting</button>
+          <button class="model-pill" data-model="Logistic Regression">Logistic Regression</button>
+          <button class="model-pill" data-model="SVM">SVM</button>
+        </div>
+      </div>
+
+      <button class="predict-btn" id="predict-btn" onclick="runPrediction()">
+        🔍 Run Prediction
+      </button>
+    </div>
+
+    <!-- RESULT -->
+    <div class="result-card">
+      <h3>📋 Risk Assessment</h3>
+
+      <div id="result-placeholder">
+        <div class="placeholder-text">
+          <div class="icon">🧬</div>
+          Enter patient data and click<br><strong>Run Prediction</strong> to see<br>the risk assessment here.
+        </div>
+      </div>
+
+      <div id="result-content" style="display:none;">
+        <div class="risk-display" id="risk-display">
+          <div class="risk-label" id="risk-label">—</div>
+          <div class="risk-prob" id="risk-prob">—% probability</div>
+          <div class="prob-bar-wrap">
+            <div class="prob-bar-bg"><div class="prob-bar" id="prob-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <div class="advice-box" id="advice-box">—</div>
+
+        <div class="contrib-section">
+          <h4>Feature Contributions</h4>
+          <div id="contrib-bars"></div>
+        </div>
+
+        <div class="disclaimer">
+          ⚠️ For educational purposes only. Not a medical diagnosis. Consult a qualified physician.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let selectedModel = "Random Forest";
+
+document.querySelectorAll('.model-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.model-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    selectedModel = pill.dataset.model;
+  });
+});
+
+async function runPrediction() {
+  const btn = document.getElementById('predict-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyzing...';
+
+  const payload = {
+    model: selectedModel,
+    Pregnancies: document.getElementById('f-preg').value,
+    Glucose: document.getElementById('f-gluc').value,
+    BloodPressure: document.getElementById('f-bp').value,
+    SkinThickness: document.getElementById('f-skin').value,
+    Insulin: document.getElementById('f-ins').value,
+    BMI: document.getElementById('f-bmi').value,
+    DiabetesPedigreeFunction: document.getElementById('f-dpf').value,
+    Age: document.getElementById('f-age').value
+  };
+
+  try {
+    const res = await fetch('/api/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const d = await res.json();
+
+    // Show result
+    document.getElementById('result-placeholder').style.display = 'none';
+    document.getElementById('result-content').style.display = 'flex';
+    document.getElementById('result-content').style.flexDirection = 'column';
+    document.getElementById('result-content').style.gap = '20px';
+
+    const riskEl = document.getElementById('risk-label');
+    riskEl.textContent = d.risk + ' Risk';
+    riskEl.style.color = d.risk_color;
+
+    document.getElementById('risk-display').style.background = d.risk_color + '10';
+    document.getElementById('risk-display').style.borderColor = d.risk_color + '40';
+    document.getElementById('risk-prob').textContent = d.probability + '% probability';
+    document.getElementById('prob-bar').style.width = d.probability + '%';
+    document.getElementById('prob-bar').style.background = d.risk_color;
+    document.getElementById('advice-box').textContent = d.advice;
+
+    // Contributions
+    const maxC = Math.max(...Object.values(d.contributions));
+    const html = Object.entries(d.contributions)
+      .sort((a,b) => b[1]-a[1])
+      .map(([feat, val]) => `
+        <div class="contrib-bar">
+          <div class="contrib-label">
+            <span>${feat}</span>
+            <span style="color:var(--muted)">${val.toFixed(4)}</span>
+          </div>
+          <div class="contrib-bar-bg">
+            <div class="contrib-fill" style="width:${(val/maxC*100).toFixed(1)}%"></div>
+          </div>
+        </div>`).join('');
+    document.getElementById('contrib-bars').innerHTML = html;
+
+  } catch(e) {
+    alert('Prediction failed. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Run Prediction';
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<style>
+.hero {
+  min-height: calc(100vh - 64px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 60px 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(56,189,248,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(56,189,248,0.1);
+  border: 1px solid rgba(56,189,248,0.3);
+  color: var(--accent);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 32px;
+}
+.hero-tag span { width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite; }
+
+h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(40px, 6vw, 80px);
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 24px;
+}
+
+h1 .accent { color: var(--accent); }
+h1 .danger { color: var(--danger); }
+
+.hero-sub {
+  max-width: 600px;
+  font-size: 18px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 48px;
+}
+
+.hero-actions { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-bottom: 80px; }
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  max-width: 1100px;
+  width: 100%;
+}
+
+.feat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  text-align: left;
+  transition: all 0.2s;
+  cursor: default;
+}
+.feat-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+
+.feat-icon {
+  font-size: 30px;
+  margin-bottom: 16px;
+}
+
+.feat-card h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.feat-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+.stat-bar {
+  display: flex; gap: 40px; justify-content: center;
+  padding: 32px 0;
+}
+
+.stat-item { text-align: center; }
+.stat-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--accent);
+}
+.stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+</style>
+
+<div class="hero">
+  <div class="hero-tag"><span></span> Final Year ML Project — 2026</div>
+  
+  <h1>
+    AI-Powered<br>
+    <span class="accent">Diabetes</span> <span class="danger">Risk</span><br>
+    Detection System
+  </h1>
+
+  <p class="hero-sub">
+    A comprehensive machine learning platform that analyzes clinical biomarkers to assess 
+    diabetes risk with multiple ML models, interactive data exploration, and AI-powered educational chatbot.
+  </p>
+
+  <div class="hero-actions">
+    <a href="/predict" class="btn btn-primary" style="font-size:16px;padding:14px 32px;">
+      🔍 Run Prediction
+    </a>
+    <a href="/dashboard" class="btn btn-ghost" style="font-size:16px;padding:14px 32px;">
+      📊 View Dashboard
+    </a>
+    <a href="/chat" class="btn btn-ghost" style="font-size:16px;padding:14px 32px;">
+      🤖 AI Chat
+    </a>
+  </div>
+
+  <div class="stat-bar" id="stats">
+    <div class="stat-item"><div class="stat-num" id="s-total">—</div><div class="stat-label">Patient Records</div></div>
+    <div class="stat-item"><div class="stat-num" id="s-prev">—</div><div class="stat-label">Prevalence Rate</div></div>
+    <div class="stat-item"><div class="stat-num" id="s-acc">—</div><div class="stat-label">Best Accuracy</div></div>
+    <div class="stat-item"><div class="stat-num">4</div><div class="stat-label">ML Models</div></div>
+  </div>
+
+  <div class="features">
+    <div class="feat-card">
+      <div class="feat-icon">🧠</div>
+      <h3>Multi-Model ML</h3>
+      <p>Compare predictions from Random Forest, Gradient Boosting, SVM, and Logistic Regression.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📊</div>
+      <h3>Analytics Dashboard</h3>
+      <p>Real charts from the PIMA Indian Diabetes Dataset — correlations, distributions, ROC curves.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔬</div>
+      <h3>Feature Analysis</h3>
+      <p>Understand which biomarkers (Glucose, BMI, Age) contribute most to prediction risk.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🤖</div>
+      <h3>AI Chat Assistant</h3>
+      <p>GPT-powered diabetes awareness chatbot that guides users through a structured health questionnaire.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🗄️</div>
+      <h3>Data Explorer</h3>
+      <p>Paginated table and statistics view of the full 768-patient clinical dataset.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⚠️</div>
+      <h3>Risk Scoring</h3>
+      <p>Get Low / Moderate / High risk output with probability score and personalized advice.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+fetch('/api/stats').then(r => r.json()).then(d => {
+  document.getElementById('s-total').textContent = d.total;
+  document.getElementById('s-prev').textContent = d.prevalence + '%';
+  document.getElementById('s-acc').textContent = d.best_accuracy + '%';
+});
+</script>
+{% endblock %}
